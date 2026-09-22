@@ -205,6 +205,11 @@ make_rootfs_image() {
   mkdir -p "$rootfs"
   priv mount "$loop" "$rootfs"
 
+  # After `sudo mount` the mount point is owned by root, so a non-root CI
+  # runner cannot write to it. Hand it to the current user for the copies
+  # below (a no-op when already running as root in a local container).
+  priv chown "$(id -u):$(id -g)" "$rootfs"
+
   cp "$KERNEL_IMAGE" "$rootfs/Image"
   cp -a "${BUSYBOX_INSTALL}/." "$rootfs/"
   mkdir -p "$rootfs/proc" "$rootfs/sys" "$rootfs/dev" "$rootfs/etc/init.d"
