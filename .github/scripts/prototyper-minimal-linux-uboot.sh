@@ -235,6 +235,11 @@ EOF
 build_uboot() {
   local tarball="${WORK_DIR}/u-boot-${UB_VERSION}.tar.gz"
   local tree="${WORK_DIR}/u-boot-${UB_VERSION}"
+  local rustsbi_abs
+
+  # `make -C` runs inside the U-Boot tree, so OPENSBI must be an absolute
+  # path; a relative path would be resolved against the tree, not the repo.
+  rustsbi_abs="$(readlink -f "$RUSTSBI")"
 
   mkdir -p "$WORK_DIR"
   download_asset "$UB_URL" "$tarball" "$UB_SHA256"
@@ -243,7 +248,7 @@ build_uboot() {
   tar -xzf "$tarball" -C "$WORK_DIR"
 
   make -C "$tree" ARCH=riscv CROSS_COMPILE="$CROSS_COMPILE" \
-    OPENSBI="$RUSTSBI" qemu-riscv64_spl_defconfig
+    OPENSBI="$rustsbi_abs" qemu-riscv64_spl_defconfig
 
   # Set the default boot command non-interactively, equivalent to the
   # menuconfig step in the repository guide. The single quotes keep
@@ -254,7 +259,7 @@ build_uboot() {
     'ext4load virtio 0:1 84000000 Image; setenv bootargs root=/dev/vda1 rw console=ttyS0; booti 0x84000000 - ${fdtcontroladdr}'
 
   make -C "$tree" ARCH=riscv CROSS_COMPILE="$CROSS_COMPILE" \
-    OPENSBI="$RUSTSBI" -j"$(nproc)"
+    OPENSBI="$rustsbi_abs" -j"$(nproc)"
 
   UB_SPL="${tree}/spl/u-boot-spl"
   UB_ITB="${tree}/u-boot.itb"
